@@ -84,10 +84,11 @@ export function labToRgb(lab: Lab): Rgb {
   const g = X * -0.969266 + Y * 1.8760108 + Z * 0.041556;
   const b = X * 0.0556434 + Y * -0.2040259 + Z * 1.0572252;
 
+  const clampLinear = (c: number) => Math.min(1, Math.max(0, c));
   return {
-    r: linearToSrgb(Math.max(0, r)),
-    g: linearToSrgb(Math.max(0, g)),
-    b: linearToSrgb(Math.max(0, b)),
+    r: linearToSrgb(clampLinear(r)),
+    g: linearToSrgb(clampLinear(g)),
+    b: linearToSrgb(clampLinear(b)),
   };
 }
 

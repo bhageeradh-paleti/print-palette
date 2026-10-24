@@ -111,8 +111,18 @@ function optimizeWeights(
   return best;
 }
 
-function toRecipe(combo: Combo, weights: number[], deltaE: number, hex: string): MixRecipe {
+function toRecipe(
+  combo: Combo,
+  weights: number[],
+  coverage: number,
+  baseHex: string,
+  targetLab: ReturnType<typeof hexToLab>,
+): MixRecipe {
   const parts = simplifyRatios(weights);
+  const total = parts.reduce((a, b) => a + b, 0);
+  const normalized = parts.map((p) => p / total);
+  const hex = predictHex(combo, normalized, coverage, baseHex);
+  const deltaE = deltaE76(hexToLab(hex), targetLab);
   const ratioLabel = parts.join(":");
   return {
     parts: combo.map((p, i) => ({ paintId: p.id, parts: parts[i] })),
@@ -142,10 +152,11 @@ function rankPaintsByRelevance(paints: Paint[], targetHex: string, limit: number
 }
 
 export function solveMixes(options: SolverOptions): MixRecipe[] {
+  const enabled = options.paints.filter((p) => p.inPalette);
   const active = rankPaintsByRelevance(
-    options.paints.filter((p) => p.inPalette),
+    enabled,
     options.targetHex,
-    12,
+    Math.min(16, enabled.length),
   );
   const targetLab = hexToLab(options.targetHex);
   const results: MixRecipe[] = [];
@@ -155,7 +166,13 @@ export function solveMixes(options: SolverOptions): MixRecipe[] {
     let bestForK: MixRecipe | null = null;
     for (const combo of combos) {
       const opt = optimizeWeights(combo, targetLab, options.coverage, options.baseHex);
-      const recipe = toRecipe(combo, opt.weights, opt.deltaE, opt.hex);
+      const recipe = toRecipe(
+        combo,
+        opt.weights,
+        options.coverage,
+        options.baseHex,
+        targetLab,
+      );
       if (!bestForK || recipe.deltaE < bestForK.deltaE) bestForK = recipe;
     }
     if (bestForK) results.push(bestForK);
@@ -184,14 +201,14 @@ export function suggestBetterPaint(
     if (ownedNames.has(ref.name.toLowerCase())) continue;
     const d = deltaE76(hexToLab(ref.hex), targetLab);
     if (!best || d < best.deltaEIfSingle) {
+      const closerThanMix = d < bestMixDeltaE - 2;
       best = {
         name: ref.name,
         hex: ref.hex,
         deltaEIfSingle: d,
-        reason:
-          d < bestMixDeltaE - 2
-            ? `A dedicated ${ref.name} tube would likely match closer than your best mix (reference ΔE ${d.toFixed(1)} vs mix ${bestMixDeltaE.toFixed(1)}).`
-            : `Your mix is close; ${ref.name} is the nearest common tube not in your set (reference ΔE ${d.toFixed(1)}).`,
+        reason: closerThanMix
+          ? `A dedicated ${ref.name} tube would likely match closer than your best mix (reference ΔE ${d.toFixed(1)} vs mix ${bestMixDeltaE.toFixed(1)}).`
+          : `Your mix is close; ${ref.name} is the nearest common tube not in your set (reference ΔE ${d.toFixed(1)}).`,
       };
     }
   }
