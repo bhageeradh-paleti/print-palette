@@ -29,6 +29,7 @@ import { createDefaultPalette } from "@/lib/matou-palette";
 import { buildSteps, solveMixes, suggestBetterPaint } from "@/lib/solver";
 import type { FeedbackDirection, MixRecipe, Paint, PaintFinish, SavedRecipeFile } from "@/lib/types";
 import { APP_UI_VERSION } from "@/lib/app-version";
+import { FILAMENT_COLOR_SHORTCUTS, TARGET_COLOR_SHORTCUTS } from "@/lib/color-presets";
 import { cn } from "@/lib/utils";
 
 function deltaLabel(d: number): string {
@@ -150,12 +151,19 @@ export function MixWorkbench() {
                 Set the color you want and the plastic already on the model.
               </p>
               <div className="mt-8 space-y-8">
-                <ColorField label="Target color" hex={targetHex} onChange={setTargetHex} prominent />
+                <ColorField
+                  label="Target color"
+                  hex={targetHex}
+                  onChange={setTargetHex}
+                  shortcuts={TARGET_COLOR_SHORTCUTS}
+                  prominent
+                />
                 <ColorField
                   label="Filament / model base"
                   hex={baseHex}
                   onChange={setBaseHex}
                   hint="The plastic color showing through thin paint."
+                  shortcuts={FILAMENT_COLOR_SHORTCUTS}
                   prominent
                 />
                 <div className="space-y-4">
